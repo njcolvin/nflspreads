@@ -1,10 +1,9 @@
-import torch
-from device import device
+from torch import no_grad
+from constants import device
 
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     model.train()
-
     total_loss = 0.0
     current, batch = 0, 0
     for batch, (X, y) in enumerate(dataloader):
@@ -28,11 +27,10 @@ def train(dataloader, model, loss_fn, optimizer):
     print(f"Average Loss: {average_loss:.6f}")
 
 def test(dataloader, model, loss_fn):
-    size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.eval()
-    test_loss, total_mae = 0.0, 0.0
-    with torch.no_grad():
+    test_loss = 0.0
+    with no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             pred = model(X)
@@ -40,9 +38,5 @@ def test(dataloader, model, loss_fn):
             # Compute loss and MAE for score_home
             loss = loss_fn(pred, y)
             test_loss += loss.item()
-            total_mae += torch.abs(pred - y).mean().item()
-            
     test_loss /= num_batches
-    total_mae /= size
-    
-    print(f"Test Error: \n MAE: {total_mae:.6f}, Avg loss: {test_loss:.6f} \n")
+    print(f"Avg loss: {test_loss:.6f} \n")

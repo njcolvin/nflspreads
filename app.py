@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -6,11 +5,11 @@ import preprocess
 from neuralnetwork import NeuralNetwork
 from dataset import NFLDataset
 from learn import train, test
-from device import device
+from constants import device
+from postprocess import evaluate_models
 
-Xtrn, Xtst, Ytrn, Ytst = preprocess.load()
+Xtrn, Xtst, Ytrn, Ytst = preprocess.load_spreadspoke()
 
-print()
 print(f"Using {device} device")
 
 model = NeuralNetwork().to(device)
@@ -18,30 +17,22 @@ print(model)
 
 training_data = NFLDataset(Xtrn, Ytrn)
 test_data = NFLDataset(Xtst, Ytst)
-train_dataloader = DataLoader(training_data)
-test_dataloader = DataLoader(test_data)
+train_dataloader = DataLoader(training_data, batch_size=64)
+test_dataloader = DataLoader(test_data, batch_size=64)
 
 for X, y in test_dataloader:
     print(f"Shape of X [N, C, H, W]: {X.shape}")
     print(f"Shape of y: {y.shape} {y.dtype}")
     break
 
-loss_fn = nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=5e-5)
-# initial_weights = {}
-# for name, param in model.named_parameters():
-#     initial_weights[name] = param.clone().detach().cpu().numpy()
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, weight_decay=0.0005)
 
-epochs = 10
+epochs = 20
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
     train(train_dataloader, model, loss_fn, optimizer)
     test(test_dataloader, model, loss_fn)
 print("Done!")
 
-with torch.no_grad():
-    for i in range(10):
-        x, y = test_data[i][0], test_data[i][1]
-        x = x.to(device)
-        pred = model(x)
-        print(f'Predicted: "{pred}", Actual: "{y}"')
+evaluate_models(model, Xtrn, Xtst, Ytrn, Ytst)
